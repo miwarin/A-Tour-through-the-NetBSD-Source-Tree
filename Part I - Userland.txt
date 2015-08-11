@@ -1,0 +1,400 @@
+A Tour through the NetBSD Source Tree - Part I: Userland http://www.feyrer.de/NetBSD/tour-de-source-1userland.html
+
+
+
+
+Part I - Userland
+
+
+NetBSD is one of the major Open Source operating systems on this planet. As such, the full source code is available via various methods like FTP, SUP, rsync, anonymous CVS and of course various vendors selling it on CD, usually accompanying the NetBSD operating system itself. If you unpack the NetBSD source, it extracts to about several hundred megabytes of source code located in /usr/src. This includes the full sources for the userland including compilers, the X Window System and build instructions for 3rd party software from the NetBSD Packages Collection as well as - of course - the NetBSD kernel itself.
+
+NetBSD は世界でも有名なオープンソースオペレーティングシステムの 1 つです。
+もちろん、すべてのソースコードは FTP、SUP、rsync、anonymous CVS や様々なベンダーが販売している CD により入手可能です。通常は NetBSD オペレーティングシステムに付随してます。
+NetBSD ソースコードを展開すると、数 100 MB のソースコードのかたまりが /usr/src に設置されます。
+この中にはすべてのソースコードがあります。コンパイラを含んだユーザーランド、X Window System、NetBSD パッケージコレクションのような 3rd パーティソフトウェアのビルド環境があり、そしてもちろん NetBSD カーネルも含まれています。
+
+In this article series we will give an overview of the userland parts of the NetBSD source tree, the second part will give an overview of libraries available for application programmers while the third part will give in-depth information on the kernel part.
+
+この章では NetBSD ソースツリーのユーザーランドの概要を紹介します。次章ではアプリケーションプログラマにとって有効な様々なライブラリを紹介し、最後にカーネルソースコードを深追いします。
+
+
+All the files and directories discussed here are located under /usr/src, and we will save typing this every time. So if we e.g. refer to the "games" dir, you know you can find that in "/usr/src/games".
+
+ここではすべてのファイルやディレクトリが /usr/src に設置されていることとします。これにより打鍵数を減らします。たとえば "games" ディレクトリは "/usr/src/games" にあります。
+
+Now let's see what there is in /usr/src!
+
+では /usr/src を見ましょう。
+
+
+Makefile:
+    About the only file that you will find in /usr/src is a Makefile. This Makefile contains descriptions on how to build the source tree, and install a working system from it. Two interesting targets are "build" and "release". The former compiles all sources and libraries, and installs them on the system, while "make release" also creates distribution archives as e.g. found in a full NetBSD release.
+
+
+Makefile:
+/usr/src にあるファイルは Makefile だけです {訳注 NetBSD 1.5.2 のころ。現在は build.sh や UPDATE など他にも多数のファイルがある}。Makefile にはソースツリーのビルド方法が書かれており、動作するシステムがインストールされます。
+2 つのターゲット "build" と "release" を見ましょう。
+build によりすべてのソースとライブラリをコンパイルし、システムへインストールされ、"make release" によって NetBSD release にあるような配布セットも生成されます。
+
+
+    There are some variables that can influence the build, the ones most worth noting here are DESTDIR, which allows building and installing the new system in a different directory, which is useful to test e.g. inside a chroot environment, to see if the build works ok in general, or for later installation by copying files to the live system. The other interesting variable is RELEASEDIR, which tells "make release" where to put the install sets.
+
+build にはいくつかの変数を設定できます。重要なのは DESTDIR です。通常はビルドが成功すると現在のシステムにインストールしてしまいますが、ビルド結果や新しいシステムのインストール先を変更します。chroot 環境など試験時によく使います。
+
+RELEASEDIR も重要です。"make release" によるインストール先を変更します。
+
+
+    There are a few other targets and variables, they are all documented at the top of the Makefile.
+
+他にもターゲットや変数がありますが全部 Makefile の冒頭に書いてあります。
+
+
+include:
+    This directory contains the system's general interface definitions and APIs in the form of C header files, which will be installed into /usr/include when building the system.
+
+このディレクトリにはシステムの一般的なインターフェースや API が C のヘッダファイルとして定義されています。システムをビルドすると /usr/include にインストールされます。
+
+
+    Note that most headers belonging to various libraries etc. are not located here, but in the same directory as the library. If you want to install all headerfiles that are available in the source tree, that can be done by running "make includes" in the /usr/src directory.
+
+なおほとんどのヘッダーファイルは様々なライブラリなどに所属しており、/usr/include ではなくライブラリと同じディレクトリに設置されます。すべてのヘッダーファイルをインストールするとソースツリーから使えるようになります。/usr/src で "make includes" すればよいです。
+
+bin:
+    This directory has all the sources for the system's /bin directory, e.g. cp, cat, sh, rm etc.. Each utility has it's own seperate subdirectory in src/bin, and there's a Makefile for each of the utilities' directories, which is responsible for building the utilities.
+
+このディレクトリはシステムの /bin ディレクトリのすべてのソースがあります。cp, cat, sh, rm などなど。各ユーティリティは src/bin 以下のサブディレクトリに分割されています。各ユーティリティのディレクトリごとに Makefile があります。これで各ユーティリティをビルドできます。
+
+    As usual for binaries in /bin, the Makefile for each utility makes sure the binary is linked statically for maximum availability. This setting is set for all programs in bin/Makefile.inc, which is read by all the program's Makefiles (via the BSD Makefile maze).
+
+日常で使うバイナリは /bin にあります。各ユーティリティのバイナリの Makefile により、最大限に活用するために静的リンクされます。この設定は bin/Makefile.inc に書かれていて、すべてのプログラムの Makefile から参照され、すべてのプログラムに適用されます( BSD Makefile の仕組みです )。
+
+sbin:
+    Similar to the src/bin directory, this directory contains commands targeted at system administration, like disklabel, dmesg, dump, mount, ifconfig and many others.
+
+src/bin ディレクトリと同様に、このディレクトリはシステム管理者向けのコマンドが含まれます。disklabel, dmesg, dump, mount, ifconfig などなど。
+
+    Again, there's one subdirectory for each program, and the Makefiles contained in there make sure the programs are linked statically, for desaster cases where one doesn't want to rely on shared libraries, shared lib loaders, etc. As in bin, there's a Makefile.inc file that determines some setting that apply to all programs in here, e.g. the destination directory (/sbin) or the fact that the programs should be linked statically.
+
+これも同様に、プログラムごとにサブディレクトリがあり、Makefile により各プログラムは静的リンクされます。災害時 {訳注: /lib をマウントできない等}にそなえて共有ライブラリ、共有 lib ローダなどには静的リンクされません。 bin と同様に Makefile.inc ファイルは /sbin すべてのプログラムに影響する設定があります。たとえば格納先ディレクトリ(/sbin) や 静的リンクさせるとか。
+
+
+usr.bin, usr.sbin:
+    Similar to src/bin and src/sbin, these two directories contain sources for programs that end up in the /usr/bin and /usr/sbin directories. As above, there's one directory per utility, and general settings can be found in the Makefile.inc files.
+
+src/bin と src/sbin と同様にこれら 2 つのディレクトリは /usr/bin と /usr/sbin に配置されるプログラムのソースがあります。これまでと同様にユーティリティごとにディレクトリがあり、汎用の設定が Makefile.inc にあります。
+
+
+    Some more complex programs in these directories that come with several accompanying tools like e.g. ssh, lint or vi have one directory and further subdirectories for seperate tools, e.g.:
+
+これらのディレクトリにはツール付属のプログラムがいくつかあります。たとえば ssh、lint、vi は複数のツールが 1 つ以上のサブディレクトリにまたがっています。たとえばこう:
+
+
+    usr.bin/ssh
+    usr.bin/ssh/libssh
+    usr.bin/ssh/scp
+    usr.bin/ssh/sftp
+    usr.bin/ssh/sftp-server
+    usr.bin/ssh/ssh
+    usr.bin/ssh/ssh-add
+    usr.bin/ssh/ssh-agent
+    usr.bin/ssh/ssh-keygen
+    usr.bin/ssh/ssh-keyscan
+    usr.bin/ssh/sshd     
+
+    The Makefile in the usr.bin/ssh directory will descend into the various subdirectories and build and install each tool.
+
+usr.bin/ssh ディレクトリの Makefile はいくつかのサブディレクトリに入り、ビルドし、各ツールをインストールします。
+
+libexec:
+    Organized in a manner much like the *bin directories mentioned before, this directory contains sources for programs that are not intended to be called directly from users, but that are usually called from other programs, e.g. network daemons started from inetd(8), the LFS file system cleaner, several mail related utilities or the shared library loader, ld.so.
+
+先ほどの *bin ディレクトリに多少似ています。このディレクトリには、たとえば inetd から起動されるネットーワークデーモンや LFS ファイルシステムクリーナー、メールユーティリティ、共有ライブラリローダー ld.so のようなユーザーから直接呼ばれないようなプログラムのソースコードがあります。
+
+
+    As NetBSD supports two execution formats, a.out and ELF, there is a seperate directory for the a.out and ELF shared library loader, located in libexec/ld.aout_so for a.out and in libexec/ld.elf_so for ELF.
+
+NetBSD は a.out と ELF の実行形式に対応しています。a.out と ELF の共有ライブラリローダーのために別々のディレクトリがあります。libexec/ld.aout_so は a.out 用で、libexec/ld.elf_so は ELF 用です。
+
+dist:
+    NetBSD comes with a great wealth of tools and utilities, some of which were inherited from 4.4BSD, some were added by the NetBSD Project, and others come from various 3rd parties. Often, programs from 3rd parties don't follow the NetBSD directory layout (one directory for each program) or build system (see /usr/share/mk/bsd.*.mk). There are several approaches to this problem.
+
+NetBSD は素晴らしいツールやユーティリティの恩恵を受けています。いくつかは 4.4BSD から存在し、いくつかは NetBSD プロジェクトにより追加されました。他にも 3rd パーティ製のものもあります。当然 3rd パーティのプログラムは NetBSD のディレクトリレイアウト( 1 プログラム 1 ディレクトリ )やビルドシステム( /usr/share/mk/bsd.*.mk 参照 )を考慮していません。この問題にはいくつか対策方法があります。
+
+
+    The easiest way to bring a program into shape for NetBSD is by modifying the sources provided by 3rd party vendors to fit into the NetBSD scheme manually, then import them into CVS. The problem is that this causes lots of trouble and grief when updating to later versions, merging in all NetBSD changes again. While CVS can help here, this is still a pain. A slightly automated approach is to use xxx2netbsd scripts (xxx is the 3rd party program in question), which takes an unmodified source tree, then merges in any NetBSD changes and then import into the NetBSD CVS repository. Programs where this is used can be found in usr.bin/file, usr.bin/less and usr.sbin/tcpdump.
+
+もっとも簡単なのは 3rd パーティ製のものを NetBSD の流儀に手動で修正し CVS に取り込むことです。ただし、こうすると沢山の問題が発生するし、今後のバージョンアップ時に再度 NetBSD への変更にマージするときに手間がかかります。CVS だけでは解決できません。xxx2netbsd スクリプト( xxx には 3rd パーティのプログラム名が入る )を使って多少は自動化できます。変更前のソースツリーを取得し、NetBSD の変更をマージし、NetBSD CVS リポジトリへインポートします。usr.bin/file、usr.bin/less、usr.sbin/tcpdump がそうです。
+
+
+    The third approach used by most major applications in NetBSD today is to import the applications into a seperate directory tree, without adjusting them to the NetBSD build scheme or operating system. In a second step, patches are committed to make the program going under NetBSD, and so-called "reachover" Makefiles are installed in the program's directories in one of the src/*bin directories. These reachover Makefiles contain the usual NetBSD-based build instructions. The important point is they take the files from the original distribution, without reorganizing the file hierarchy.
+
+最近の NetBSD の多くのアプリケーションが採用している 3 つめの手段として、別のディレクトリツリーになっているアプリケーションを取り込むというのがあります。これらは NetBSD ビルドの仕組みやオペレーティングシステムとは切り離されています。2 番目ステップとして、パッチはプログラムを NetBSD の流儀に沿うように適用されます。"reachover" と呼ばれる Makefiles は、src/*bin のうちのひとつのプログラムのディレクトリへインストールされます。これらの reachover Makefile は通常の NetBSD ベースのビルド命令を含んでいます。重要なのはこれらはオリジナルの配布元からファイルを取得し、ファイル階層を変更などしないことです。
+
+
+    The src/dist directory is one of the directories used in NetBSD to store unmodified sources from 3rd parties that follow a BSD copyright and don't have problems otherwise that may lead to the desire to seperate them from the rest of the sources for various reasons - see the "gnu/dist" and "crypto/dist" dirs below for more information on that. Programs that are stored here include am-utils (the amd automounter), bind, dhcp, ipf and ntp. The reachover Makefiles can then be found in the usual directories under the src/*bin hierarchies.
+
+src/dist ディレクトリは、NetBSD が BSD ライセンスの 3rd パーティ製ソースを変更せずに保持しているために使われるディレクトリの 1 つです。BSD ライセンスは様々な理由によりソースを分離したいという要求にたいしても問題がないライセンスです。詳細は後述する gnu/dist と crypto/dist ディレクトリを参照。am-utils (the amd automounter), bind, dhcp, ipf と ntp といったプログラムが含まれます。reachover Makefile は通常 src/*bin 階層のディレクトリ以下にあります。
+
+
+    Let's take BIND as an example. While the distribution is in src/dist/bind, the Makefiles related to build it are in src/usr.sbin/bind/*:
+
+例として BIND を見ます。配布は src/dist/bind にあります。src/usr.sbin/bind/* のうち関連する Makefile は以下のとおり:
+
+    usr.sbin/bind/dig/Makefile
+    usr.sbin/bind/doc/bog/Makefile
+    usr.sbin/bind/doc/Makefile
+    usr.sbin/bind/Makefile
+    usr.sbin/bind/dnskeygen/Makefile
+    usr.sbin/bind/dnsquery/Makefile
+    usr.sbin/bind/host/Makefile
+    usr.sbin/bind/lib/Makefile
+    usr.sbin/bind/named/Makefile
+    usr.sbin/bind/named-bootconf/Makefile
+    usr.sbin/bind/named-xfer/Makefile
+    usr.sbin/bind/ndc/Makefile
+    usr.sbin/bind/nslookup/Makefile
+    usr.sbin/bind/nsupdate/Makefile
+    usr.sbin/bind/reload/Makefile
+    usr.sbin/bind/restart/Makefile
+
+    Looking e.g. at the src/usr.sbin/bind/nslookup/Makefile, here is the part that's responsible for pulling in the sources from the src/dist/bind directory:
+
+例えば src/usr.sbin/bind/nslookup/Makefile を見てみると、src/dist/bind からソースを取得する処理があります。
+
+    .include "../Makefile.inc"
+    .PATH: ${BIND_DIST_DIR}/bin/nslookup \
+      ${BIND_DIST_DIR}/man 
+
+    The part from the src/usr.sbin/bind/Makefile.inc that's responsible for setting BIND_DIST_DIR as appropriate for all the BIND-related tools is:
+
+src/usr.sbin/bind/Makefile.inc は BIND 関連ツール全体で使うための BIND_DIST_DIR を設定します。
+
+    BIND_DIST_DIR=  ${.CURDIR}/../../../dist/bind 
+
+    With the nslookup Makefile residing in src/usr.sbin/bind/nslookup and appending ../../../dist/bind results in src/usr.sbin/bind/nslookup/../../../dist/bind which is the same as src/dist/bind and voila, there's our BIND sources! :-)
+
+nslookup Makefile は src/usr.sbin/bind/nslookup へ ../../../dist/bind を追加し、src/usr.sbin/bind/nslookup/../../../dist/bind を作ります。これは src/dist/bind と同じであり、これが BIND のソースです :-)
+
+
+gnu:
+    This directory seperates things from the rest of the source tree that are distributed under the GNU Public License (GPL) or similar licenses, which require people who make modifications to the code to make these modifications public too, which in turn is often not an option for companies that use NetBSD e.g. in embedded applications. The code is seperated in one dir to make it easier to identify and not use it in the worst case.
+
+
+このディレクトリは GNU Public License (GPL) やその類似ライセンスのもとで配布されたソースが隔離されています。コードを変更したひとはその変更も配布することが要求されます。組み込みアプリケーションのように NetBSD を利用している企業向けのオプションは用意されていません。コードは 1 つのディレクトリに隔離し、最悪の場合は使いません。
+
+    The directory structure here is similar to the one in the main "src" dir, consisting mostly of a distribution archive, and reachover Makefiles that access these sources then:
+
+ディレクトリ構造は主な src ディレクトリと同様です。ほとんど配布アーカイブとして構成されていて、Makefile は以下のソースにアクセスします:
+
+
+    Makefile:
+        This Makefile just descends into all the directories that contain NetBSD build instructions (i.e. not into "dist"), to build and install programs and documentation.
+
+Makefile は NetBSD ビルド命令( 例えば "dist" は含まない )によりディレクトリを下り、ビルドし、プログラムや文書をインストールします。
+
+
+    dist:
+        This directory contains unpacked sources of various programs that will be used via reachover Makefiles. Programs included here are "normal" userland programs like bc, diffutils, gawk, grep, texinfo, various support libraries like libiberty and the whole toolchain consisting of gcc, binutils, gdb, and the C++ libraries libio and libstdc++.
+
+このディレクトリには Makefile から利用される様々なプログラムのソースが展開されています。bc, diffutils, gawk, grep, texinfo や libiberty といった様々なライブラリ、gcc, binutils, gdb そして C++ ライブラリ libio や libstdc++ の全ツールチェインといった "通常の"ユーザーランドプログラムが含まれます。
+
+        The programs are stored in their original distribution-provided directory layout, and we will not describe them further here. Please check the programms' documentation if needed.
+
+プログラムはそれらのオリジナルの配布によるディレクトリ構造に格納されます。ここでは割愛します。必要であればプログラマ向け文書を読むこと。
+
+    lib:
+        This directory contains several subdirectories, one for each library that is built from the sources in the src/gnu/dist directory. The libraries are built using reachover Makefiles which use the NetBSD set of make(1) rules to build libraries, <bsd.lib.mk>.
+
+このディレクトリはいくつかのサブディレクトリがあります。各ディレクトリは src/gnu/dist ディレクトリにあるソースからビルドされるライブラリごとにあります。ライブラリは NetBSD make(1) の規定によるビルド <bsd.lib.mk> から Makefile が使われます。
+
+
+    libexec:
+        This directory contains "only" Ian Taylor's UUCP, fixed to accommodate the NetBSD build structure. Each library and program belonging to UUCP has it's seperate directory under src/gnu/libexec/uucp. In contrast to many other packages from src/gnu, reachover Makefiles are not used here. Instead, the sources were reorganized to fit into the NetBSD scheme of one directory per program/library.
+
+このディレクトリは Ian Taylor の UUCP だけが含まれていて、NetBSD ビルド構造に適合します。UUCP のための各ライブラリとプログラムは、src/gnu/libexec/uucp の下のディレクトリに分けられています。他のたくさんの src/gnu パッケージとは対照的です。Makefile はここでは使われません。その代わりプログラム/ライブラリごとにディレクトリがあるという NetBSD のスキームに合うように再編成されています。
+
+    usr.bin:
+        This directory contains bc, binutils, cpio, dc, diff, egcs (the version of gcc shipped with NetBSD 1.5.x!), gas, gdb, grep, groff, gzip, rcs, sdiff, send-pr, sort, (GNU) tar and texinfo. Most programs here are converted to have distribution sources in src/gnu/dist, but some still have their own sources stored in the NetBSD layout.
+
+このディレクトリは  bc, binutils, cpio, dc, diff, egcs ( NetBSD 1.5.x の gcc のバージョンからある ), gas, gdb, grep, groff, gzip, rcs, sdiff, send-pr, sort, (GNU) tar そして texinfo があります。ここにあるほとんどのプログラムは、src/gnu/dist のソースとして配布するように変換されます。しかしいくつかはまだ NetBSD レイアウトにソースそのままで格納されています。
+
+    usr.sbin:
+        There are two major directories here: postfix and sendmail. Each of them has the full sources of the corresponding Mail Transport Agent (MTA) whipped into shape for NetBSD. The various programs that come with the MTAs are built in seperate subdirectories, as usual.
+
+ここにはおもに postfix と sendmail 2 つのディレクトリがあります。 これらは各々 Mail Transport Agent (MTA) 通信の全ソースがあり、NetBSD 向けにまとめてあります。これらの MTA プログラムは通常は分けられたディレクトリにビルドされます。
+
+
+crypto:
+    Similar to code with certain copyright restrictions, there is code that is critical in other regards. For many years, the US export restrictions applied to every country outside the USA, which made it very difficult to include cryptographic code with the NetBSD distribution. This in turn lead to some hassles like maintaining two crypto-archives, one for domestic USA use and one for international use, but fortunately this is now a thing of the past. There are still countries that fall under export restrictions due to cryptographic technology, which needs to be addressed. To make it easy to prepare a NetBSD distribution for them, and to split out crypto code from the NetBSD source tree if there ever is a need in the future for other reasons, it was chosen to keep crypto related sources in their own subdirectory, src/crypto.
+
+特定の著作権の制限をコードに似て、他の点において重要であるコードがある。長年にわたり、米国の輸出規制は、それが非常に困難NetBSD配布と暗号コードが含まれるようにした米国外のすべての国に適用される。 2暗号アーカイブ、国内の米国用と国際使用するための1つを維持しますが、のようないくつかの激論このターン中の鉛が、幸いこれはもはや過去のものです。原因対処する必要がある暗号化技術への輸出制限に該当国が残っています。彼らのためにNetBSDの配布を準備することが容易にするために、そして今までに他の理由のために、将来的に必要がある場合にNetBSDのソースツリーから暗号コードを分割し、それが自分自身のサブディレクトリに、 SRCでcrypto関連のソースを維持するために選ばれました/暗号。
+
+
+
+
+
+    The src/crypto directory doesn't contain any infrastructure to build programs itself, it only contains sources that are used from a number of places all over the "normal" places in the NetBSD source tree, i.e. from src/usr.bin, etc.
+
+
+src/crypto ディレクトリにはプログラム自身をビルドする仕組みはありません。src/usr.bin 等 通常の NetBSD ソースツリーのいくつからから利用されるソースだけがあります。
+
+    dist:
+        This directory contains the unpacked distributions for
+        このディレクトリには以下の配布物が含まれています
+
+            KTH Heimdal Kerberos (heimdal)
+            MIT Kerberos (krb4)
+            OpenSSL (openssl)
+            OpenSSH (ssh) 
+
+games:
+    Back to normal sources for some entertainment! This directory contains sources for various command-line and curses-base games as well as a number of more or less useful utilities that didn't make it into other places of the source tree - most of the layout here is from historic BSD sources.
+
+
+いくつかのエンターテイメントのためのソースに戻ります。このディレクトリは様々なコマンドライン または curses ベースのゲームのためだけでなくソースツリーの他の場所には至らず、多かれ少なかれ便利な数多くのユーティリティが含まれています。BSD ソースの階層によるレイアウトになっている。
+
+    Besides a number of games, there is also a list or less useful programs stored here, including:
+ゲームの数に加えて、リストや、含めここに保存あまり有用なプログラムもあります。
+
+
+    banner:
+        Used by the printing system to print ... banners. :)
+        バナーを印字するための印字システムです。
+
+    dm:
+        This program allows restricted execution of programs based on login time, system load or login terminal.
+このプログラムは、ログイン時間、システム負荷またはログインターミナルに基づいて、プログラムの制限された実行を可能にする。
+
+
+    fortune:
+        print a random, hopefully interesting, adage
+        たまに面白い格言をランダムに印字します。
+
+    pom:
+        display phase of the moon - useful for selecting software completion target dates and predicting managerial behavior!
+月の表示相 - ソフトウェア完了目標期日を選択して、経営の挙動を予測するのに有用！
+
+
+
+    rain, worms:
+        ASCII eye candy
+アスキー目の保養
+
+
+    wtf:
+        tries to explain acronyms, with fallback to standard unix manual pages.
+標準のUNIXマニュアルページへのフォールバックで、頭字語を説明しようとする。
+
+
+distrib:
+    This directory contains all the procedures and data that are used when creating a release, i.e. architecture specific code to create install media, tools used by the install routines, and release documentation.
+
+このディレクトリには、 release を作るときに使用される手続きとデータがすべて含まれています。たとえば、インストールメディアを作成するときのアーキテクチャごとのコード、インストール処理から使用されるツール、release 文書です。
+
+
+    Interesting directories here are:
+ここで興味深いのディレクトリは以下のとおりです。
+
+
+    alpha, amiga, arm32, atari, bebos, hp300, hpcmips, i386, mac68k, macppc, mvme68k, news68k, newsmips, pc532, pmax, sparc, sparc64, sun3, vax, x68k:
+        The procedures in here create install media images, usually various floppy images or miniroot filesystems.
+
+alpha, amiga, arm32, atari, bebos, hp300, hpcmips, i386, mac68k, macppc, mvme68k, news68k, newsmips, pc532, pmax, sparc, sparc64, sun3, vax, x68k:
+インストールmディアを作成する手順があります。通常は様々なフロッピーイメージか miniroot ファイルシステムのイメージです。
+
+    miniroot:
+        Ports using miniroot filesystems to install the system use the code from this directory for the common installation routines. Miniroot-based installation is now deprecated in favour of sysinst, see below.
+システムをインストールするには、ミニルートファイルシステムを使用してポートは、一般的なインストールルーチンのため、このディレクトリからのコードを使用しています。ミニルートベースのインストールは今sysinstはのために廃止され、以下を参照してください。
+
+
+    notes:
+        General and port-specific installation instructions used to create the INSTALL.* files that come with each NetBSD release. Each port has specific files in it's own subdirectory, common text used for all ports (introduction, ...) is available in the "common" directory. The files are in *roff format, and the various output formats (HTML, PostScript, ASCII) are derived from that.
+
+各NetBSDリリースに付属してインストールします。 *ファイルを作成するために使用される一般的およびポート固有のインストール手順。各ポートは、それ自身のサブディレクトリ内のすべてのポートに使用、一般的なテキストの特定のファイルを持って（導入を、 ...） 「共通」ディレクトリにあります。ファイルは* roffの形式で、さまざまな出力形式（HTML 、ポストスクリプト、 ASCII ）は、その由来である。
+
+
+
+    sets:
+        This directory has the set lists that define what files and directories belong to each of the install sets (base, comp, text, etc.), as well as a few scripts to help creating and maintaining the lists. The set lists are in seperate directories under sets/lists/<set>, for each set there are several types of files:
+このディレクトリは、作成やリストを維持支援するため、設定されたファイルとディレクトリがインストールセット（ベース、 COMP 、テキストなど）のそれぞれに属するかを定義リストだけでなく、いくつかのスクリプトを持っています。セットリストは、下の別々のディレクトリにあるセット/リスト/ <設定> 、それぞれのファイルにはいくつかの種類がありますが設定のために：
+
+
+            machine independent list ("mi")
+マシン独立のリスト（ 「MI 」 ）
+            
+            CPU-architecture dependent files ("ad.{mips,m68k,powerpc,sh3}")
+CPUアーキテクチャに依存するファイル（ 「広告。 { MIPS 、 m68kの、 PowerPCの、 SH3 } " ）
+
+            machine dependent files for each port ("md.*")
+各ポートのマシン依存ファイル（ 「MD 。 * "）
+
+            files depending on the availability of shared libraries and execution format ("shl.{elf,mi}")
+共有ライブラリと実行形式の可用性に応じてファイル（ 「 SHL 。 {エルフ、 MI } " ）
+
+            files that were present in previous releases and that are no longer used in the latest release, and thus can (and will be, by sysinst) be removed ("obsolete.*") 
+以前のリリースに存在したとファイルは、もはや削除される（ sysinstはにより、およびなります）できるため、最新のリリースで使用されていない、とされている（ 「時代遅れ。 * "）
+
+
+    utils:
+        There are a wealth of install tools in this directory, all optimized for little space usage. Most important the sysinst utility, but there are also special versions of programs like "sh", "ftp" etc. that come with reduced feature set to not waste space on install media.
+インストールツールの富は少しスペースの使用のために最適化されたすべてのは、このディレクトリにあります。 、 sysinstはユーティリティ最も重要なのが、 " SH "のようなプログラムの特別バージョンもありますインストールメディア上のスペースを無駄にしないように設定を低減機能が付属してなど「FTP 」 。
+
+
+etc:
+    Here are the system config files that will be installed in various places of a new system. Interesting files are:
+ここでは新システムのさまざまな場所に設置され、システムの設定ファイルである。興味深いファイルは次のとおりです。
+
+        general config files for /etc and a few other places
+        port specific files in etc.<arch> - mostly fstab, ttys and the MAKEDEV script for /dev. 
+は、/ etcのための一般的な設定ファイルといくつかの他の場所
+        など<アーチ>ポートの特定のファイル - 主にfstabに、 ttysにおよび/ devに関するMAKEDEVスクリプト。
+        
+        
+regress:
+    regression test for libraries, kernel features, etc.
+
+などのライブラリ、カーネル機能、の回帰テスト
+
+share:
+    stuff for /usr/share; note that most manpages are not stored in here but in the same place as the utility they document
+は、/ usr / shareのためのもの。ほとんどのマニュアルページはここではなく、彼らは文書化ユーティリティと同じ場所に格納されていないことに注意してください
+
+
+lib:
+    library source - see part II of this article series
+ライブラリソースは、 - この記事のシリーズのパートIIを参照してください。
+
+
+sys:
+    kernel source - see part III of this article series
+カーネルソース - この連載の第III参照
+
+
+Two things that are not located under /usr/src but that are available in seperate source tar-files are the sources of the X Window System used on all the NetBSD platforms as well as the NetBSD Packages Collection:
+は/ usr / srcの下にありますがされていない2つの事は、tar -ファイルは、すべてのNetBSDのプラットフォームだけでなく、 NetBSDのパッケージコレクションに使用されるX Window Systemの源である別々のソースで利用可能です：
+
+
+xsrc:
+    This directory has XFree 3 in xsrc/xc, and XFree 4 in xsrc/xfree/xc. While the former has many NetBSD-specific changes for non-i386 ports (amiga, sparc, ...), the latter needs to be used with most modern PC graphics cards. Currently, only XFree 3 is built and included with releases, XFree 4 snapshots are made manually as of this writing.
+このディレクトリは、のxsrc / XCにはXFree 3があり、のxsrc / XFreeの/ XCではXFree 4 。前者は非i386のポート（アミーガ、 SPARC 、 ...）のための多くのNetBSD固有の変更がありますが、後者のニーズが最も近代的なPCグラフィックスカードで使用する。現在、 XFreeの3が構築され、リリースに含まれてはXFree 4スナップショットは、これを書いている時点で手動で行われている。
+
+
+    To build XFree 4 instead of XFree 3, the variable USE_XF86_4 needs to be set in /etc/mk.conf.
+のXFree 4の代わりにはXFree 3を構築するには、変数USE_XF86_4は/etc/mk.confにに設定する必要があります。
+
+
+pkgsrc:
+    The NetBSD Packages Collection is organized into several directories that group programs by function. Each functional group contains the packages from that group, which can be installed using "make install". The infrastructure of the Packages System is in the *.mk files in the pkgsrc/mk directory. See pkgsrc/Packages.txt for more information.
+
+NetBSDパッケージコレクションは、そのグループのプログラム機能により、いくつかのディレクトリで構成されています。各官能基は、 「 make install "を使用してインストールすることができ、そのグループからのパッケージが含まれています。パッケージシステムのインフラストラクチャは、 pkgsrcの/ MKディレクトリ内の*の.mkファイルにある。詳細については、 pkgsrcの/ Packages.txtを参照してください。
+
+
+
+
+This first part of our tour through the NetBSD source tree outlined the userland code, distribution facilities as well as random odds and ends. The next part of the tour will give an overview of all the libraries available for application programs. (c) Copyright 20020110 Hubert Feyrer
+$Id: tour-de-source-1userland.html,v 1.1 2002/01/21 00:45:28 feyrer Exp $ 
+
+
+NetBSDソースツリーを通して私たちのツアーのこの最初の部分は、物流施設などのランダムオッズと終了をユーザーランドのコードを概説する。ツアーの次の部分は、アプリケーションプログラムで使用可能なすべてのライブラリの概要を説明します。 （ C ）著作権20020110ヒューバートFeyrerが
+
+

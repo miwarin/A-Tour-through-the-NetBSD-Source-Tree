@@ -1,0 +1,288 @@
+A Tour through the NetBSD Source Tree - Part II: Libraries http://www.feyrer.de/NetBSD/tour-de-source-2libraries.html
+
+
+Part II - Libraries
+
+In Unix(-like operating systems), commonly used routines that can be accessed from many programs are grouped within so-called libraries and that can be used from application programs. The src/lib directory contains the libraries that come with NetBSD, and there's quite a number of them. Let's have a look!
+
+ユニックス（様なオペレーティングシステム）では、多くのプログラムからアクセスすることができ、一般的に使用されるルーチンは、いわゆるライブラリ内でグループ化され、そのアプリケーションプログラムから使用することができる。 SRC / libディレクトリには、NetBSDに付属してライブラリが含まれ、そのうちのかなりの数があります。それでは見てみましょう！
+
+
+
+csu:
+    Sources for crt0.o and it's C++ cousin c++rt0.o. These are not libraries, but equally important nevertheless, as they do the startup of every program - pull in shared libs, for C++ call any constructors, then call main(). When main() returns, several cleanup functions are called that call e.g. C++ destructors. After that, the return code from main() is returned to the calling program and the program terminates. Sources in this directory are partly coded in machine language for efficiency, and there are special functions for each architecture and object file format (a.out, ELF).
+
+のcrt0.oのためのソースと、それは、C ++のいとこC ++ rt0.oだ。これらは、彼らがすべてのプログラムの起動がそうであるように、それにもかかわらず図書館が、同様に重要ではない - ） 、その後（メインコール、すべてのコンストラクタを呼び出すC ++用の、共有ライブラリに引っ張る。ときに（ ）が復帰するメイン、いくつかのクリーンアップ機能がそのコールなどと呼ばれているC ++デストラクタ。その後、主からの戻りコードは（ ）呼び出しプログラムに返され、プログラムは終了します。このディレクトリ内のソースは、部分的に効率のための機械語でコード化され、各アーキテクチャとオブジェクトファイル形式（ a.outの、 ELF）のための特別な関数があります。
+
+
+
+libarch:
+    This library contains some architecture-specific functions that might be useful to access from userland programs. For i386, functions exist to manipulate the per-process I/O permission bitmap, I/O privilege levels and set virtual 8086 processor registers and mode. Other archs have functions for handling CPU caches from userland here.
+
+このライブラリは、ユーザーランドのプログラムからのアクセスに便利かもしれないいくつかのアーキテクチャ固有の機能が含まれています。 i386用の、機能は、プロセスごとのI / O許可ビットマップ、 I / O特権レベルを操作し、仮想の8086プロセッサのレジスタとモードを設定するために存在する。その他のarchここにユーザランドからCPUキャッシュを処理するための機能を有している。
+
+
+libbz2:
+    The bz2 algorithm compresses files using the Burrows-Wheeler block-sorting text compression algorithm, and Huffman coding. This library is used in several programs to allow reading and writing of bz2 compressed archives and files.
+
+BZ2アルゴリズムはファイルBurrows-Wheelerブロックソートテキスト圧縮アルゴリズムを使用して、ハフマン符号化を圧縮する。このライブラリは、 bz2を圧縮されたアーカイブとファイルの読み書きを可能にするためにいくつかのプログラムに使用される。
+
+
+
+libc:
+    This is probably the most important library in NetBSD, as it contains the "trampoline" stub code to do kernel calls from C programs. The stubs are tiny pieces of C/assembler code that take any arguments for system calls (check your section 2 of the NetBSD manual pages, starting with intro(2)!), then bring them into shape to do a system call using whatever way the underlying hardware uses to do so, usally a trap or software interupt. The system call is executed in kernel context, and any retuen value is taken by the stub and fed back too the calling routine. Besides the stub code for system calls, libc also contains code for a lot of convenience functions that can be called from programs without linking in any special library, as libc is always pulled in automatically. These convenience functions include code for
+
+これは、 Cプログラムからカーネル呼び出しを行うには「トランポリン」スタブコードが含まれているように、恐らくNetBSDの中で最も重要なライブラリです。スタブはシステムコールの引数を取るC /アセンブラコードの小さな断片です（イントロで始まる、 NetBSDのマニュアルページのあなたのセクション2をチェックする（ 2 ） ！ ） 、その後どのような方法を用いてシステムコールを行うために形状にそれらをもたらす基盤となるハードウェアは、とてもusallyトラップまたはソフトウェアinteruptを行うために使用します。システムコールは、カーネルコンテキスト内で実行され、そして任意retuen値はスタブにより採取しすぎるバック呼び出しルーチンに送られる。 libcのは常に自動的に引き込まれているように、システムコール用のスタブコードのほかに、 libcのも、特別なライブラリにリンクすることなくプログラムから呼び出すことができる便利な関数の多くのコードが含まれています。これらの簡易関数は、ためのコードを含む
+
+
+
+        database access using the Berkeley DB code
+Berkeley DBのコードを使用してデータベースアクセス
+
+        support functions for shared libraries, which do load shared objects (dlopen(3), ...)
+共有オブジェクトをロード行い、共有ライブラリのサポート機能（のdlopen （ 3 ） 、 ... ）
+
+        assisting profiling
+アシストプロファイリング
+
+        various hash routines (sha1(3), md5(3), ...)
+さまざまなハッシュルーチン（ sha1の（ 3 ） 、 md5の（ 3 ） 、 ... ）
+
+
+        locale and NLS handling
+ロケールおよびNLSの取り扱い
+
+
+        processing network related information, like the name service switch routines and the DNS resolver code
+ネームサービススイッチルーチンとDNSリゾルバコードのような処理ネットワーク関連情報、
+
+        regular expression handling
+正規表現の取り扱い
+
+        RPC handling including service creating/accessing for both clients and servers and XDR handling
+RPC処理の両方のクライアントとサーバーとXDR処理のためのアクセス/サービスの作成を含む
+
+
+        routines for 64bit type handling, for 32bit CPUs
+32ビットCPUの64ビットタイプ処理のためのルーチン、
+
+
+        software floating point operation routines for machines that don't have a floating point unit (FPU)
+ソフトウェア（ FPU）浮動小数点ユニットを持たないマシンの小数点演算ルーチンを浮動
+
+
+        the "stdio" set of functions that handles buffered input/output and many other things.
+入力/出力および他の多くのものをバッファリングされたハンドルの機能で設定した「標準入出力」 。
+
+
+        the "stlib" functions
+「 stlib 」の機能
+
+        string manipulation functions
+文字列操作関数
+
+
+        the terminal I/O subsystem that allows hardware independent programming of terminal driven software, by using a translation table for terminal functions, termcap.
+端末の機能のためのtermcapの変換テーブルを用いて、端末駆動型ソフトウェアのハードウェアに依存しないプログラミングを可能にする端子I / Oサブシステム。
+
+
+        timezone-handling functions
+タイムゾーン処理関数
+
+
+        network information service (NIS) handling 
+ネットワーク情報サービス（ NIS）の取り扱い
+
+
+    Also important, this directory contains all the manpages for the system and library calls (manual pages section 2 and 3).
+また、重要な、このディレクトリには、システムやライブラリコール（マニュアルページのセクション2および3 ）のためのすべてのmanページが含まれています。
+
+
+
+
+libasn1, libcom_err, libhdb, libkadm, libkadm5clnt, libkadm5srv, libkafs, libkdb, libkrb, libkrb5, libkstream, libroken, libsl, libss, libvers:
+    These directories contain various auxilliary libraries for both Heimdal and MIT Kerberos. Unfortunately, there is little documentation about the functions and interfaces they provide, and they are currently used by Kerberos only.
+これらのディレクトリは、 HeimdalのとMIT Kerberosの両方のための様々なの補助ライブラリが含まれている。残念ながら、それらが提供する機能とインタフェースについてはほとんどのドキュメントがあり、それらは現在、 Kerberosが使用されている。
+
+
+
+libcompat:
+    The routines collected here are for backward compatibility with old software interfaces, and must be linked in explicitly. Included here are the regexp(3) routines which were obsoleted by regex(3), and various functions for terminal handling, queue management and remote program execution.
+
+ルーチンは、ここに集め、古いソフトウェアインタフェースとの下位互換性のためであり、明示的でリンクする必要があります。ここに含まは正規表現である（ 3 ）ターミナル処理、キュー管理とリモートプログラムの実行のために正規表現（ 3 ） 、および様々な機能によって廃止されたルーチン。
+
+
+
+libcrypt:
+    This library contains (only) the DES routine used for password encryption. It was put into it's own library so it can be omited easily from systems that are exported to countries which fall under the US export restrictions. Fortunately these are much less strict nowadays than when libcrypt was invented.
+
+このライブラリは、パスワードの暗号化に使用（のみ） DESルーチンが含まれています。それは米国の輸出規制に該当国に輸出されているシステムから簡単にはこの属性を省略できるようにそれは、それ自身のライブラリに入れた。幸いなことに、これらは、今日ではlibcryptが発明されたときよりもはるかに少ない厳しいです。
+
+
+libcrypto:
+    This library contains various routines for data encryption, decryption, hashing and signing. The functions are part of the OpenSSL distribution, and the source is accessed using the reachover mechanism, the actual sources are in src/crypto.
+
+このライブラリは、データの暗号化、復号化、ハッシング、署名のためのさまざまなルーチンが含まれています。関数は、 OpenSSLのディストリビューションの一部であり、ソースはreachoverメカニズムを使用してアクセスされる、実際のソースはSRC /暗号である。
+
+
+libcrypto_idea, libcrypto_rc5:
+    While export restriction and movingg restricted functions into their own libraries, taking care of existing patents is another issue. The IDEA and RSA RC5 algorithms that come with OpenSSL are patented, and may not be used under certain conditions. To allow disabling them easily, they were moved into their own libraries again. Using shared library techniques, libcrypto will pull them in if available, and fail with an abort(3) call if they cannot be found (when called).
+
+輸出制限とmovinggが自分のライブラリに機能を制限しているが、既存の特許の世話をすることは別の問題です。 OpenSSLを付属しているIDEAとRSA RC5アルゴリズムは特許取得済みであり、一定の条件の下で使用することはできません。簡単にそれらを無効にできるようにするために、彼らは再び自分のライブラリに移動されました。共有ライブラリの技術使用して、 libcryptoなどが利用可能な場合、それらをで引っ張ってくる、とアボート（ 3 ）それらが見つからない場合は、 （呼び出されたときに）呼び出しで失敗。
+
+
+
+libcurses:
+    This directory contains sources to the curses(3) terminal handling library, which can be used to do simple, terminal/screen-based applications in a hardware/terminal independent way. Note that NetBSD does not use the ncurses implementation, but one that is derived from 4.4BSD and that was extended to follow the latest standards.
+このディレクトリは、呪いのハードウェア/端末に依存しない方法でシンプル、ターミナル/画面ベースのアプリケーションを実行するために使用することができます（ 3 ）ターミナル処理ライブラリへのソースが含まれています。 NetBSDはncursesの実装を使用しないことに注意してください、しかし4.4BSDから派生して、そのは、最新の基準に従うように拡張されました1 。
+
+
+
+libdes:
+    The libdes that existed on 4.4BSD systems and that provided routines for the Data Encryption Standard for encrypting and decrypting data are contained in the OpenSSL-based libcrypto these days, and libdes is just a dummy directory that keeps information about the libdes shared library. The library itself is a link to libcrypto and is generated when libcrypto is built/installed.
+
+4.4BSDシステムやデータの暗号化と復号化するためのデータ暗号化標準のためにその提供するルーチンに存在していたlibdesは、これらの日libcryptoのOpenSSLをベースに含まれている、とlibdesは共有ライブラリlibdesに関する情報を保持だけでダミーのディレクトリです。ライブラリ自体はlibcryptoなどするためのリンクですとlibcryptoなどが構築されたときに/インストール生成されます。
+
+
+
+
+libedit:
+    This library contains a set of functions for command line editing and history processing. It originated in 4.4BSD and was extended to provide source-level compatibility with GNU's readline library by the NetBSD project.
+
+このライブラリは、コマンドライン編集と履歴処理のための関数のセットが含まれています。これは、 4.4BSDで発信されNetBSDプロジェクトによって、GNUのreadlineのライブラリとソースレベルの互換性を提供するために拡張されました。
+
+
+libgssapi:
+    This library implements the Generic Security Services, which provides security services to callers in a generic, source-level compatible way, and which usually sits above the cryptographic libraries. See RFCs 1508 and 1509 for more information, there's (unfortunately) not much documentation contained in this library, which is mostly used by Kerberos.
+
+このライブラリは、一般的な、ソースレベルの互換性のある方法で呼び出し元にセキュリティサービスを提供し、通常は暗号化ライブラリの上に着座するジェネリックセキュリティサービスを実装しています。主にKerberosが使用され、このライブラリに含まあまりないドキュメントは（残念ながら）あります、詳細についてのRFCの1508と1509を参照してください。
+
+
+libipsec:
+    These routines convert IPsec policy specification structures from and to (human-readable) string, and allow accessing the pfkey API.
+
+これらのルーチンは、からと（人間が読める）文字列にIPsecのポリシー仕様構造を変換し、 PFKEY APIにアクセスできるように。
+
+
+libkvm:
+    The kvm(3) library provides a uniform interface for accessing kernel virtual memory images, including live systems and crashdumps. Available functions include retrieving the current load average, a list of open files as well as routines to access arbitrary symbols for both reading and writing. This library is used by many programs to retrieve status information from various kernel subsystems.
+
+KVM （ 3）ライブラリは、ライブシステムやクラッシュダンプなどのカーネル仮想メモリイメージにアクセスするための統一されたインタフェースを提供します。利用可能な機能は、現在の負荷平均、読み取りと書き込みの両方に任意のシンボルにアクセスするためのオープンなファイルだけでなく、ルーチンのリストを取得含まれています。このライブラリは、さまざまなカーネルサブシステムからステータス情報を取得するために、多くのプログラムによって使用される。
+
+
+
+libl:
+    The (f)lex lexical analyzer has some common routines that are stored in this library. The sources are taken directly from src/usr.bin/lex by reachover Makefiles. The resulting library is installed as both libl and libfl, as the "lex" that's shipped with NetBSD is really the "flex" implementation.
+
+（F ） LEX字句解析はこのライブラリに保存されているいくつかの一般的なルーチンを持っています。ソースはreachoverのMakefileによってはsrc / usr.bin / LEXから直接取得されます。 NetBSDのに同梱の「 LEX 」は本当に「フレックス」実装であるとして得られたライブラリーは、 LIBLとlibfl両方としてインストールされます。
+
+
+libm:
+    The math library contains many functions for single and double precision floating point arithmetics, trigonometric functions and many more. This library must be linked in explicitly when using simple math functions like sin(3) and cos(3).
+
+数学ライブラリは、単精度および倍精度浮動小数点演算、三角関数と、より多くのための多くの機能が含まれています。罪のような単純な数学関数を使用するときにこのライブラリには、明示的でリンクされている必要があり（ 3）とCOS （ 3 ） 。
+
+
+
+    Many of the functions in this library exist in specially optimized versions written in machine language for various CPU/FPU architectures, for maximum performance. There is also the distinction between machines using IEEE floating point format internally and these that use a different format, which is reflected in the source.
+
+このライブラリの関数の多くは、最大のパフォーマンスのための様々なCPU / FPUアーキテクチャ用の機械語で書かれた、特別に最適化されたバージョンが存在します。内部IEEE浮動小数点形式を使用して、マシンおよびソースに反映されている別の形式を使用し、これらの間に区別がある。
+
+
+libmenu:
+    The menu(3) provides a terminal independent menu system using the curses(3) library.
+メニュー（ 3 ）呪い（ 3 ）ライブラリを使用して、端末の独立したメニューシステムを提供する。
+
+
+libossaudio:
+    This library provides compatibility to the Open Sound System API. It can be linked against sources that (usually) originate on Linux, and the OSS sound calls will be mapped to use the native NetBSD sound system. Beware that for using this library, the needed header file <soundcard.h>'s path is different than on Linux (which uses <sys/soundcard.h>)
+このライブラリは、オープンサウンドシステムAPIに互換性を提供します。これは、 （通常は） Linux上で発信することをソースに対してリンクすることができ、およびOSSサウンドコールはネイティブNetBSDのサウンドシステムを使用するようにマップされます。このライブラリを使用してのためにそれを注意し、必要なヘッダファイル<のsoundcard.h >のパスは、Linux上では異なっている（使用しては<sys /のsoundcard.h > ）
+
+libpcap:
+    The Packet Capture library can be used to implement packet sniffers and other applications that need to know about network traffic in a machine independent, efficient way. It's used e.g. by tcpdump(8).
+
+パケットキャプチャライブラリは、マシンに依存しない、効率的な方法でネットワークトラフィックを知るために必要なパケットスニファおよび他のアプリケーションを実装するために使用することができる。それは、例えば使われていますtcpdumpの（8 ） 。
+
+
+libposix:
+    This library has code for some system calls that by default implement some non-POSIX API, e.g. the traditional 4.4BSD APIs. To get calls with real POSIX semantics, libposix can be used. The code for this library is taken from libc (using reachover Makefiles), POSIX semantics are enabled using compiler switches at build time. Available functions here include chown(2), lchown(2), fchown(2) as well as rename(2). See the "STANDARDS" sections of the corresponding manual pages for more information.
+
+このライブラリは、いくつかのシステムのためのコードは、デフォルトでは、例えばいくつかの非POSIX APIを実装することを呼び出しています伝統的な4.4BSD APIを。実際のPOSIXセマンティクスのコールを取得するには、 libposixを使用することができる。このライブラリのコードは（ Makefileをreachover使用）はlibcから取得され、 POSIXのセマンティクスは、ビルド時にコンパイラスイッチを使用して有効にしている。ここで利用可能な機能は、 chownをを含む（ 2 ） 、 lchown （ 2 ） 、 fchownに（ 2 ）と同様にリネーム（ 2 ） 。詳細については、対応するマニュアルページの「 STANDARDS 」の項を参照してください。
+
+
+libresolv:
+    This library implements special functions for talking to the DNS resolver. While general resolving functions are built into libc, functions here can be used to tune behaviour of the resolver, hand-craft DNS queries and several other things. See resolver(3) for description of the functions available here.
+
+このライブラリは、 DNSリゾルバに話をするための特別な機能を実装しています。一般的な解決の機能はlibcのに組み込まれていますが、ここでの機能は、レゾルバのチューンの動作、ハンドクラフトのDNSクエリおよびいくつかの他のものに使用することができます。ここで利用可能な機能の説明については、リゾルバ（ 3 ）を参照してください。
+
+
+librmt:
+    If you need operations on remote tapes, this is what you need. This library is used by dump/restore and other applications to use remote tape drives. See the rmtops(3) manpage for more information.
+
+あなたは、リモートのテープ上での操作が必要な場合は、これは何が必要です。このライブラリは、リモートテープドライブを使用するダンプ/リストアおよび他のアプリケーションで使用されている。詳細については、 RMTOPSは（ 3 ）のマンページを参照してください。
+
+
+librpcsvc:
+    Several commonly used RPC server handlers, for a number or services and protocols: bootparam, NFS, mountd, rquota, rstat, NIS, etc.; The source exists in the form of .x files, which are used as an input to rpcgen(1) to produce interface definition (.h files) and server stub code (.c files), the latter of which is then put into librpcsvr.
+
+番号またはサービスやプロトコルのためのいくつかの一般的に使用されるRPCサーバハンドラ、 ：のbootparam 、 NFS 、 mountdの、 rquota 、 RSTAT 、 NIS 、等;ソースは、インターフェース定義（ .hファイル）とサーバスタブコード（ .cファイル）を生成するのrpcgen （ 1 ）への入力として使用される.xはファイルの形で存在し、後者はそれらのその後librpcsvrに入れる。
+
+
+libskey:
+    The s/key one-time password library is used by several programs to implement disposable one-time passwords that can be used to authenticate from insecure environments. See skey(1) on how to setup s/key, which can then be used when logging in via FTP, telnet and other services.
+
+秒/キーワンタイムパスワードライブラリは、安全でない環境からの認証に使用できる使い捨てのワンタイムパスワードを実装するために複数のプログラムによって使用される。 SKEY見る（1 ）上でどのようにFTP 、 telnetや他のサービスを経由してログインするときに、次に使用することができ、セットアップS /キー、に。
+
+libssl:
+    The secure sockets layer (SSL) library is compiled from the OpenSSL sources located in src/crypto/dist (see below) using reachover Makefiles.
+
+セキュアソケットレイヤー（ SSL）ライブラリは、SRC /暗号/ distの中に位置してOpenSSLのソースからコンパイルされたMakefileをreachover使用して（下記参照） 。
+
+libtelnet
+    This library contains various auxilliary routines used by telnetd(8), e.g. functions to utilize Kerberos authentication.
+
+このライブラリは、 telnetdは（ 8 ） 、例えばによって使用される様々なの補助ルーチンが含まれています関数は、 Kerberos認証を利用する。
+
+
+libterm:
+    This is the directory that contains sources for libtermcap, which implements hardware-independent operations for accessing terminal devices. Routines are provided to lookup hardware-independent operatins, and provide terminal-dependent operations using the termcap(5) terminal capabilities database.
+
+
+これは端末装置にアクセスするためのハードウェアに依存しない操作を実装にlibtermcap 、のソースを含むディレクトリです。ルーチンは、ハードウェアに依存しないoperatinsを検索し、 termcapの（ 5 ） 、端末の機能データベースを使用して、端末に依存する操作を提供するために設けられている。
+
+libusb:
+    The usb library provides routines to extract data from USB Human Interface Devices, e.g. identification of mice and keyboards, keyboard mapping, number of mouse buttons etc. Furthermore, data on certain events like key presses can be extracted.
+
+USBライブラリはUSBヒューマンインターフェイスデバイス、例えばからデータを抽出するためのルーチンを提供していますマウス、キーボード、キーボードマッピングの同定は、マウスボタン等の数はまた、キーの押下のような特定のイベントに関するデータを抽出することができる。
+
+libutil:
+    This library contains various useful routines that are used in many utilities that come with NetBSD. Routines include line parsing, finding out about the number of maximum partitions supported by the port the program's running on as well as determining the number of the raw partition ('c' vs. 'd'), login capabilities, as well as terminal, pseudo-terminal, disk and password file handling.
+
+
+このライブラリは、NetBSDに付属して多くのユーティリティで使用されている各種の有用なルーチンが含まれています。ルーチンがポートでサポートされている最大パーティション数について調べること、ライン解析が含まれ、プログラムの上で実行されているだけでなく、生のパーティションの数を決定する（ 'C'対'D '） 、ログイン機能だけでなく、ターミナル、疑似端末、ディスクおよびパスワードファイルの処理。
+
+libwrap:
+    The TCP wrapper library is used to authenticate peers before accepting network connections from them. It's used by several services in NetBSD, with inetd only being the most important one - every service started via /etc/inetd.conf can be authenticated without adding code to the individual services. Other services not started by inetd that can still make use of the TCP wrapper mechanism include rpcbind, sshd, supfilesrvr and ypserv. Documentation for adding similar authentication for application programs is available in the hosts_access(3) manpage.
+
+
+TCPラッパーライブラリーは、それらのネットワーク接続を受け入れる前にピアを認証するために使用される。これは、 inetdが唯一の最も重要なもので、 NetBSDの中でいくつかのサービスで使われている - /etc/inetd.confには、個々のサービスにコードを追加することなく、認証を受けることができ経由ですべてのサービスが開始。他のサービスはまだ、 supfilesrvrとypservのをsshdが、 rpcbindに含まTCPラッパーメカニズムを利用することができinetdによって開始されていません。アプリケーションプログラムのために同じような認証を追加するためのドキュメントははhosts_access （ 3 ）マニュアルページで利用可能です。
+
+
+liby:
+    This library is only used by the yacc(1) compiler generator, defining some auxiliary functions that are not intended for use by random 3rd party applications. Parsers generated with yacc(1) will need to be linked against this library, though.
+
+このライブラリは、唯一のランダムサードパーティのアプリケーションで使用するために意図されていないいくつかの補助関数を定義する、のyacc （ 1 ）コンパイラジェネレータによって使用されます。 yaccがで生成されたパーサは、 （ 1 ）ただし、このライブラリに対してリンクする必要があります。
+
+
+libz:
+    The libz compression library is used by gzip and various other applications to read/write compressed data, e.g. install-info, ssh and makewhatis as well as a lot of third party applications from pkgsrc. The sources of the library are available here, unfortunately the documentation consists of source and header files only. UTSL! :-)
+
+libzを圧縮ライブラリは、例えば圧縮されたデータを、読み取り/書き込みにgzipとさまざまな他のアプリケーションで使用されているインストール情報、 SSHをし、 pkgsrcのからサードパーティアプリケーションの多くと同様にmakewhatisは。ライブラリのソースは残念ながらドキュメントはソースとヘッダファイルのみで構成され、ここにご利用いただけます。 UTSL ！ ： -）
+
+
+As you can see, there is quite a number of libraries available to be used by applications and programmers. In addition with the source layout for programs described in the first part of this series, this is all that makes up the NetBSD operating system's userland. In the next part, we will have a look at the part that's not user-visible, diving into the kernel sources.
+
+ご覧のように、利用可能なライブラリのかなりの数は、アプリケーションプログラマが使用するという問題がある。このシリーズの最初の部分に記載のプログラムのソースレイアウトに加えて、これはすべてのことは、 NetBSDオペレーティングシステムのランドを構成している。次の部分では、カーネルソースにユーザに見える、ダイビングではありません一部を見てます。
+
+(c) Copyright 20020110 Hubert Feyrer
+$Id: tour-de-source-2libraries.html,v 1.2 2002/01/29 00:59:29 feyrer Exp $ 

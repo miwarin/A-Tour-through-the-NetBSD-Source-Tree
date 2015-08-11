@@ -1,0 +1,408 @@
+A Tour through the NetBSD Source Tree - Part III: Kernel http://www.feyrer.de/NetBSD/tour-de-source-3kernel.html
+
+
+Part III - Kernel
+
+This is the third part of our tour through the NetBSD source tree. After we have talked about the various components that build up the userland, we will concentrate on the kernel source now. It is located in /usr/src/sys, with the /sys symlink being a well-known abbreviation to reach the system's kernel source.
+
+これはNetBSDのソースツリーを私たちのツアーの第三部である。私たちはユーザーランドを構築するさまざまなコンポーネントについて話した後、我々は今、カーネルソースに集中する。これは、sys /シンボリックリンクがシステムのカーネルソースに到達するためのよく知られた略語であることで、は/ usr / src / sysにに位置しています。
+
+
+Let's remember what happens when building a kernel: after editing the kernel config file located in /sys/arch/<arch>/conf and running config(8) on it, a number of files are created in /sys/arch/<arch>/compile/KERNELNAME. The header files contain data about what and how many devices to include, as well as other data for the system's configuration. Besides that, a Makefile is created, that is used to build the kernel from source. The interesting point to note here is that there is only one Makefile that will locate and compile all the needed sources and place the object files in the .../compile/KERNELNAME directory. In NetBSD, there is no recursive tree-walk of the whole source tree utilizing several Makefiles to build the various sub-trees of the kernel source. This allows building kernels for several configurations and platforms from the same source, without different builds tripping across each other.
+
+
+それではカーネルを構築するときに何が起こるかを覚えてみましょう： / SYS /アーチに位置カーネル設定ファイルを編集した後/ <アーチ> / confや設定（ 8 ） 、その上に、ファイルの数が/ SYS /アーチ/ <アーチに作成されて実行している> /コンパイル/ KERNELNAME 。ヘッダファイルには、システム構成に含める何をどのように多くのデバイスに関するデータだけでなく、他のデータが含まれています。それに加えて、 Makefileを作成されるが、そのソースからカーネルを構築するために使用されている。ここで注意すべき興味深い点が見つけて、必要なすべてのソースをコンパイルし、オブジェクトファイルを配置する唯一の1のMakefileがあるということです... / / KERNELNAMEディレクトリをコンパイルします。 NetBSDのでは、カーネルのソースの様々なサブツリーを構築するためにいくつかのMakefileを利用し全体のソースツリーのない再帰的なツリー徒歩はありません。これは、異なるが相互間でトリップするビルドすることなく、同じソースからいくつかの構成およびプラットフォームのためのビルディングカーネルを可能にする。
+
+Still, the various parts of the NetBSD kernel are placed in various subdirectories that we will have a closer look at now. Under /usr/src/sys, there are:
+
+それでも、 NetBSDカーネルのさまざまな部分は、私たちが今をよく見て必要があります様々なサブディレクトリに配置されます。は/ usr / src / sysに下では、あります。
+
+
+adosfs, coda, filecorefs, isofs, msdosfs, nfs, ntfs:
+    These are various filesystems used directly by NetBSD to access data. Some of the filesystems' primary goal is to help in exchanging data between the machine's native operating system (AmigaOS's adosfs, Acorn Computers RISC OS's filecorefs, ...), while others implement filesystems that can be found on many systems (isofs, nfs, ...).
+
+これらのデータにアクセスするNetBSDで直接使用される様々なファイルシステムである。他の人がファイルシステムを実装しながら、ファイルシステムの主要な目標の中には、マシンのネイティブのオペレーティングシステム間でのデータ交換に支援することです（ AmigaOSののadosfsを、エイコーンコンピュータRISC OSのfilecorefsは、 ...） 、多くのシステム（ isofs 、 NFS上で見つけることができるよう、 ...） 。
+
+
+ufs:
+    The Unix (User) File System is the base of the native filesystem used in NetBSD. Ancient (AT&T) Unix filesystems only allowed up to 14 chars long filenames, there were no symlinks etc. The problems were solved by the Berkely computer scientists implementing BSD Unix. Their filesystem implementation serves as a base for several filesystems based on it these days, using various ways of data layout on the disk.
+
+Unixの（ユーザー）ファイルシステムは、NetBSDで使用されるネイティブファイルシステムのベースである。古代（ AT ＆T ） UNIXのみ14文字長いファイル名まで許容ファイルシステム、問題はBSD Unixのを実装するバークレーのコンピュータ科学者によって解決された全くシンボリックリンクなどはなかった。彼らのファイルシステムの実装では、ディスク上のデータレイアウトのさまざまな方法を使用して、これらの日、それに基づいていくつかのファイルシステムのためのベースとなる。
+
+
+    The filesystems are stored in the "ufs" subdirectory, filesystems contained in there include
+そこに含まれるにファイルシステムが「 UFS 」サブディレクトリに格納され、含まれているファイルシステム
+
+
+        ext2fs: Linux' ext2fs
+        lfs: Log structured filesystem
+        構造化されたファイルシステムのログ
+        
+        mfs: Memory filesystem, for things like in-core /tmp
+        コア内の/ tmpのようなもののためのメモリのファイルシステム、
+        
+        ufs: The native NetBSD filesystem
+        ネイティブNetBSDのファイルシステム
+        
+        ffs: General routines of the Berkeley Fast File System, utilized by the other UFS-based filesystems, including things like softdeps. 
+        softdepsのようなものを含む、他のUFSベースのファイルシステムによって利用バークレー高速ファイルシステムの一般的なルーチン、 。
+        
+
+miscfs:
+    This directory contains further filesystems that aren'd directly related to physical storage. Instead they implement various layered filesystems for services like data translation or routines for implementing kernel features. Using the virtual filesystem operations table, it is easy to change behaviour of a operation upon certain conditions, e.g. mapping operations to deadfs on a file who's filedescriptors were revoke(2)'d.
+
+このディレクトリは、物理的なストレージに直接関連aren'dさらにファイルシステムが含まれています。その代わりに、カーネルの機能を実装するためのデータ変換などのサービスまたはルーチンのための様々な階層のファイルシステムを実装しています。仮想ファイルシステム操作のテーブルを使用して、特定の条件、例えば時の動作の動作を変更することは容易であるマッピング操作は、ファイルディスクリプタ（2 ） ' dはリボークただファイルにdeadfsする。
+
+
+    The filesystems included here are:
+ここに含まファイルシステムは、次のとおりです。
+
+
+        deadfs: Implements operations that don't modify any data and instead return indications of invalid IO. Used to revoke(2) file descriptors.
+        すべてのデータを変更し、代わりに無効なIOの指示を返さないオペレーションを実装します。 （ 2 ）ファイル記述子を取り消すために使用します。
+        
+        
+
+        fdesc: Maps a process' file descriptors into filesystem space, depending on the accessing process. Can be mounted on /dev/fd using mount_fdesc(8).
+        
+        アクセス処理に応じて、ファイルシステム空間にプロセスのファイル記述子にマップします。 / devの上に取り付けることができる/ mount_fdescを使用してfdが（ 8 ） 。
+        
+        
+
+        fifofs: Implements FIFOs using Unix domain sockets internally
+        内部でUnixドメインソケットを使用してFIFOを実装します
+        
+
+        genfs: Generic filesystem functions that mostly return errors of some kind - bad filedescriptor, bad operation, or just does no operation at all. Used for implementing deadfs etc.
+        一般的なファイルシステムの大部分はいくつかの種類のエラーを返す関数 - ちょうど悪いファイル記述子、悪い操作、または何も操作しないですべて行います。などdeadfsを実現するのに使用される
+        
+        
+
+        kernfs: This filesystem is usually mounted under /kern and provides various informations about the running system, like kernel version, system time etc.
+        このファイルシステムは、通常は/カーニングの下にマウント等カーネルのバージョン、システム時刻と同じように、稼働中のシステムについてのさまざまな情報を提供している
+        
+
+        nullfs: Used to "mirror" one directory tree onto another directory, providing the same tree on both mount points. Also known as loopback mount - see mount_null(8) for more information
+        両方のマウントポイントを上同じツリーを提供する別のディレクトリ上に「ミラー」 1ディレクトリツリー、するために使用する。また、ループバックとして知られているマウント - 詳細については、 mount_null （ 8 ）を参照してください
+        .
+
+        overlay: The operation of this filesystem is similar to the null filesystem, the implementation allows using this filesystem as a base for further layered filesystems though, as all VFS operations are defined. See mount_overlay(8) for more information.
+        このファイルシステムの操作は、すべてのVFS操作が定義されているように実装は、しかし、さらに階層化ファイルシステムのベースとしてこのファイルシステムを使用することを可能にする、ヌルのファイルシステムに似ています。詳細については、 mount_overlay （ 8 ）を参照してください。
+        
+        
+
+        portal: The portal filesystem provides an service that allows descriptors such as sockets to be made available in the filesystem namespace following conversion rules given in a config file. See the mount_portal(8) manpage for further information.
+        ポータルファイルシステムは、ソケットなどの記述子は、設定ファイルで指定された変換規則以下のファイルシステム名前空間で利用できるようにすることができますサービスを提供しています。 mount_portal詳細については、 （ 8 ）のmanページを参照してください。
+        
+
+        procfs: Similar to kernfs, this filesystem is usually mounted on /proc and allows accessing various data about processes. It is used by ps(1) and other utilities. See mount_proc(8) for more information.
+        kernfsと同様に、このファイルシステムは、通常は/ procにマウントされ、プロセスに関するさまざまなデータにアクセスすることができます。これは、 psの（ 1 ）および他のユーティリティによって使用される。詳細については、 mount_proc （ 8 ）を参照してください。
+        
+        
+
+        specfs: Implements routines to access special devices. The filesystem provides a filesystem interface, and calls the device-specific routines depending on the device's type, major and minor number.
+        特殊なデバイスにアクセスするためのルーチンを実装します。ファイルシステムは、ファイルシステムインターフェースを提供し、デバイスのタイプ、メジャーとマイナーの数に応じてデバイス固有のルーチンを呼び出します。
+        
+
+        syncfs: Operations used to implement the ioflush kernel thread that writes out modified pages to disk.
+        操作は、ディスクに修正されたページを書き出しioflushカーネルスレッドを実装するために使用される。
+
+        umapfs: A filesystem for re-mapping UIDs/GIDs, useful e.g. when mounting a NFS volume from a server that has a different set of UIDs/GIDs than the local machine.
+        再マッピングのUID / GIDのためのファイルシステム、便利な例ローカルマシン以外のUID / GIDのの異なるセットを持ってサーバからNFSボリュームをマウントするとき。
+        
+
+        union: This layered filesystem allows merging two filesystems, providing a view as if they were mounted on the same mountpoint. Modifications go either to the "upper" or to the "lower" layer, which allows mounting a CDROM (read-only :), and mounting an empty but writable directory over it, making it e.g. possible to do a compile on a source expanded on the CDROM. See mount_union(8) for further details.
+        
+        この階層化ファイルシステムは、彼らが同じマウントポイントにマウントされているかのようにビューを提供する、 2のファイルシステムをマージすることを可能にする。修正は「上」またはCD-ROMをマウント可能にする「下位」層、のいずれかに行く（ :)読み取り専用、および作り、その上に空のが、書き込み可能なディレクトリをマウントすることなど可能性は、 CD-ROMに展開されたソースでコンパイルをすることができません。詳細はmount_union （ 8 ）を参照してください。
+        
+        
+
+compat:
+    This directory contains code for emulating binary compatibility with various non-NetBSD operating systems as well as with old NetBSD binaries. It includes:
+
+このディレクトリには、様々な非NetBSDオペレーティングシステムとのバイナリ互換性など、古いNetBSDのバイナリをエミュレートするためのコードが含まれています。これは含まれています：
+
+
+        aout: This subsystem is used to run native NetBSD a.out binaries on systems that made the transition to the ELF executable format. As for most emulations, the shared library loader ld.so, shared libs etc. are looked for in /etc/aout first.
+        このサブシステムは、 ELF実行形式に移行したシステム上のネイティブNetBSDのa.outのバイナリを実行するために使用されます。ほとんどのエミュレーションについては、共有ライブラリローダーld.soは、など共有ライブラリはAOUT最初/は、/ etcを探している。
+        
+        
+
+        common: Various common routines used by all emulations like system call table translation routines; also contains compat code for prior NetBSD releases, see the COMPAT_* kernel options in options(4).
+        システムコールテーブル変換ルーチンのようなすべてのエミュレーションで使用されるさまざまな一般的なルーチン。また前のNetBSDリリースのためにcompatコードが含まれ、 COMPAT_を参照してください*オプションでカーネルオプション（ 4 ） 。
+
+        freebsd: mostly a few glue routines for running FreeBSD/i386 a.out and ELF binaries; See the compat_freebsd(8) manpage for details on setting things up!
+        FreeBSDの/ I386のa.outとELFバイナリを実行するための大部分は、いくつかのグルールーチン。物事の設定の詳細についてはcompat_freebsd （ 8 ）のmanページを参照してください！
+        
+
+        hpux: To run native HP/UX programs on the Motorola based hp300/hp400 machines. Adjusts a fair number of calls, including terminal IO, signals, IO, etc.
+        モトローラベースのhp300の/ hp400マシン上でネイティブのHP / UXプログラムを実行します。などの端末IO 、信号、 IO 、を含む、通話のかなりの数を調整します
+        
+
+        ibcs2: This code implements the Intel Binary Compatibility Suite version2 used for running SCO programs on i386, but also for general compatibility with AT&T System V.3 which is used on the VAX port. Maybe it should have been named COMPAT_SVR3 - the compat_ibcs2(8) manpage contains more data.
+        このコードは、また、VAXポートで使用されているAT＆TのシステムV.3との一般的な互換性のために、 VERSION2 i386でSCOプログラムを実行するために使用されるインテルバイナリ互換Suiteを実装しています。 manページは、より多くのデータが含まれている（ 8 ） compat_ibcs2 - 多分それはCOMPAT_SVR3と命名されている必要があります。
+        
+
+        linux: Code to run a.out and ELF Linux binaries for a number of hardware platforms, including alpha, arm32, i386, powerpc, mips, m68k, sparc and sparc64. One of the special things of the Linux emulation is that Linux uses a different system call table on each port, which makes maintaining things a bit more interesting. The code is seperated in a "common" directory that applies to all platforms, and various architecture specific directories for different CPUs. The compat_linux(8) manpage contains more information on using the system, and there are also several packages in pkgsrc that help in setting up the necessary shared libraries etc. to run Linux binaries like Netscape or Acrobat Reader.
+        アルファ、 arm32 、 I386 、 PowerPCの、 MIPS 、 m68kの、 SPARCおよびSPARC64などのハードウェアプラットフォームの数、のためにはa.outとELFのLinuxバイナリを実行するためのコード。 Linuxエミュレーションの特別なことの一つは、 Linuxはもう少し面白いものを維持する各ポートで異なるシステムコールテーブルを使用していることです。コードは、異なるCPUのために、すべてのプラットフォームに適用される「共通」ディレクトリ、および様々なアーキテクチャ固有のディレクトリに区切られている。 COMPAT_LINUX （8 ）のmanページには、システムの使用方法の詳細が含まれている、とNetscapeまたはAcrobat ReaderなどのLinuxバイナリを実行するなどの必要な共有ライブラリのセットアップに役立つpkgsrcの中でいくつかのパッケージもあります。
+        
+        
+        
+
+        m68k4k: Some of the m68k ports used to use a pagesize of 4k instead of the 8k common today. This code helps in maintaining binary compatibility with old binaries that still use 4k.
+        4Kのページサイズの代わりに、 8kの共通の今日を使用するために使用されるのm68kポートの一部。このコードはまだ4Kを使用する古いバイナリとのバイナリ互換性を維持するのに役立ちます。
+        
+
+        netbsd32: Used by 64bit systems like sparc64 to run native 32bit binaries, mapping the programs' 32bit args to the 64bit args used by LP64 systems' kernels.
+        SPARC64は、カーネルの「 LP64システムで使用される64ビット引数に32ビット引数」プログラムをマッピングする、ネイティブ32ビットのバイナリを実行するように64ビットシステムで使用される。
+
+        osf1: The compat_osf1(8) system allows running OSF/1 (AKA Digital Unix AKA Tru64) on the Alpha platform.
+        compat_osf1 （ 8 ）システムは、 AlphaプラットフォームでOSF / 1 （ AKA DIGITAL UNIX AKAのTru64 ）を実行することを可能にする。
+        
+
+        ossaudio: This software layer provides Open Sound System compatible ioctl calls that are then mapped to the native NetBSD audio model by this code. Enabled when compiling in support for Linux and/or FreeBSD binary compatibility.
+        このソフトウェア層は、このコードでネイティブNetBSDのオーディオモデルにマッピングされているオープンサウンドシステム互換性のioctl呼び出しを提供します。 Linuxと/またはFreeBSDのバイナリ互換性のためのサポートでコンパイルしたとき有効。
+        
+
+        pecoff: This subsystem allows running programs that are in the PEcoff executable format, which is found on the Microsoft Windows platform. Of course mapping system calls is a real challenge here, as the API to present to the upper layer is definitely nothing that is even remotely near to the API used on all the Unix-like compat systems, and as such there's no easy mapping of the calls to NetBSD functions. Much of the work is done by libraries in the userspace instead, which then talk to the X server etc. See the compat_pecoff(8) manpage for further details.
+        
+        このサブシステムは、Microsoft Windowsプラットフォーム上で発見されたPECOFF実行形式、しているプログラムを実行することができます。でも、リモートからすべてのUnixライクをcompatのシステムで使用されるAPIの近くにあるものは間違いなくありません、そのようなものとしての簡単なマッピングがない上位層に提示するためのAPIとして当然マッピングシステムコールを本当の挑戦は、ここにあるNetBSDの関数の呼び出し。作業の多くは、その後などのXサーバに話す詳細はcompat_pecoff （ 8 ）manページを参照してください代わりにユーザスペース内のライブラリによって行われる。
+        
+        
+        
+
+        sunos: If users still have SPARC or m68k applications built for SunOS 4.x, this emulation layer will help run them. See compat_sunos(8) for more information.
+        ユーザーがまだSunOS 4.xのために構築され、SPARCやm68kのアプリケーションがある場合は、このエミュレーション層は、それらを実行するのに役立ちます。参照してくださいcompat_sunos （ 8 ）を参照してください。
+        
+
+        svr4: The System V compat system allows binary compatibility for several systems, e.g. Solaris (SunOS 5.x) on i386, sparc and sparc64, Amix on m68k and SCO/Xenix on i386. The compat_svr4 manpage contains further information.
+        System Vのcompatのシステムは、複数のシステム、例えばのためのバイナリ互換性を可能にするソラリスのm68kとi386上のSCOが/ XENIXをオンI386 、 SPARCおよびSPARC64 、 AMIX上（のSunOS 5.xの） 。 COMPAT_SVR4マンページでは、より詳細な情報が含まれています。
+        
+
+        ultrix: For pmax and other MIPS based systems as well as VAX systems, to run Ultrix binaries. See compat_ultrix(8).
+        Pmaxと他のMIPSベースのシステムだけでなく、 VAXシステムでは、 Ultrixのバイナリを実行します。 compat_ultrix （8）を参照してください。
+
+        vax1k: For VAX binaries that still use 1k pagesizes, this allows running them. No idea where these originate - probably very historic. :)
+        
+        まだ1K pagesizesを使用するVAXバイナリの場合、これは、それらを実行することを可能にする。非常に歴史的、おそらく - これらは発信は考えません。 :)
+
+conf:
+    The /sys/conf directory contains the main list of files to include into kernel builds as well as scripts and files used to update the OS version and compile it into the kernel. The operating system's version is stored in the "osrelease.sh" script, which is used from a number of places to determine the OS version.
+
+/ SYS / confディレクトリには、カーネルのビルドと同様に、OSのバージョンを更新し、カーネルにコンパイルするために使用するスクリプトとファイルに含めるファイルの主なリストが含まれています。オペレーティングシステムのバージョンは、 OSのバージョンを決定するために、多くの場所から使用される「 osrelease.sh 」スクリプトに格納されている。
+
+
+crypto:
+    This directory contains code for various data encryption standards (arc4, blowfish, DES, Rijndael etc.) that is subject to crypto export regulations. The code is use by the IPsec kernel subsystem.
+このディレクトリには、暗号輸出規制の対象となるさまざまなデータ暗号化規格（ ARC4 、フグ、 DES 、 Rijndaelのなど）のためのコードが含まれています。コードは、IPsecのカーネルサブシステムによって使用される。
+
+
+ddb:
+    The DDB kernel debugger that can be used to do post mortem debugging is found here. The debugger is used on all NetBSD ports.
+死後のデバッグを行うために使用することができDDBカーネルデバッガは、こちらを参照している。デバッガは、すべてのNetBSDポートで使用されている。
+
+
+dev:
+    This directory contains device drivers that use the machine independent bus_dma(9) and bus_space(9) interfaces and that work on all platforms that support the necessary bus glue routines. There are several subdirectories grouping drivers by various categories:
+このディレクトリには、マシンに依存しないbus_dma （ 9 ）とbus_space （ 9 ）インターフェースおよび必要なバスのりルーチンをサポートするすべてのプラットフォーム上でその作品を使用デバイスドライバが含まれています。さまざまな種類のドライバをグループ化するいくつかのサブディレクトリがあります：
+
+
+        bus interface: cardbus, eisa, ieee1394, isa, isapnp, mca, pci, pcmcia, sbus, tc, usb, vme, qbus, xmi
+
+        functionality: ata, i2c, i2o, mii, ofw, pckbc, raidframe, rasops, rcons, scsipi, sysmon, wscons, wsfont
+
+        general interfaces that are backed by bus-specific drivers: audio, midi, rnd
+
+    The directory structure is mostly oriented towards the bus system that a hardware device attaches to, not towards the functionality it provides. There are no special categories for things like audio, network etc. - these are in their bus-specific directories like pci, isa etc. containing (only) the bus-specific attachment routines.
+
+ディレクトリ構造は、主にハードウェアデバイスではなく、それが提供する機能に向かっに取り付けバスシステムに向けられる。これらは、PCIのような彼らのバス固有のディレクトリ、 ISAなど（のみ）バス固有の添付ファイルのルーチンを含む内にある - オーディオ、ネットワークなどのようなものについては、特別なカテゴリがありません。
+
+
+    If a chip implements some functionality like audio, network or scsi, it is often used on several cards that all have the same chip, but different bus interfaces - ISA, PCI, etc. To prevent maintaining several drivers that have identical core functionality, NetBSD drivers are seperated into bus-glue code kept in the bus-specific directories mentioned above, and the core functionality of the integrated circuit. Naming conventions help identifying e.g. network cards (if_*), but aren't implemented throughoutly, unfortunately.
+
+、 NetBSDの同一のコア機能を持っているいくつかのドライバーを維持しないようにするにはISA 、 PCIなど - チップはオーディオ、ネットワークやSCSIのようないくつかの機能を実装している場合、それは多くの場合、すべてが同じチップを持っているいくつかのカードが、異なるバスインターフェイスで使用されているドライバは、上記のバス固有のディレクトリに保存さバスグルーコード、および集積回路のコア機能に区切られている。命名規則は、例えば特定ざるネットワークカード（ IF_ *）は、残念ながら、 throughoutly実装されていません。
+
+
+
+    The drivers for the core functionality are stored in the "ic" subdirectory, with the file names indicating the IC's chip numbers:
+    
+    コア機能用のドライバは、ICのチップ番号を示すファイル名で、 「IC」サブディレクトリに保存されます。
+    
+
+    % ls /sys/dev/ic
+    CVS                 cac.c               isp_target.c        pckbc.c
+    Makefile            cacreg.h            isp_target.h        pckbcvar.h
+    README.ncr5380sbc   cacvar.h            isp_tpublic.h       pdq.c
+    ac97.c              cd1190reg.h         ispmbox.h           pdq_ifsubr.c
+    ac97reg.h           cd1400reg.h         ispreg.h            pdqreg.h 
+    ...
+
+ipkdb:
+    An IP-based debugger interface to a remote machine. Another way to debug the NetBSD besides the DDB kernel debugger and gdb, which can be used for debugging both userland and kernel.
+リモートマシンへのIPベースのデバッガインタフェース。もう一つの方法は、ユーザランドとカーネルの両方をデバッグするために使用することができるDDBカーネルデバッガとGDB 、ほかにはNetBSDをデバッグする。
+
+
+
+kern:
+    This directory contains the core kernel code including a number of facilities:
+このディレクトリには、施設の数を含むコアカーネルのコードが含まれています。
+
+
+        loaders for executables in various formats (a.out, EOF, COFF, scripts ...)
+        
+        さまざまな形式の実行可能ファイルのローダー
+
+        process and (kernel) thread management
+        
+        工程と、（カーネル）スレッド管理
+        
+
+        signal delivery and handling
+        シグナル配信と取り扱い
+        
+
+        terminal IO subsystem
+        端子IOサブシステム
+        
+
+        sockets and other interprocess comunication primitives
+        ソケットおよび他のプロセス間コミュプリミティブ
+
+        virtual filesystem layer, providing the framework used by the filesystems in /sys/miscfs.
+        / SYS / miscfsでファイルシステムが使用するフレームワークを提供する仮想ファイルシステム層、 。
+        
+
+        many auxiliary routines used from all places
+        すべての場所から使用されている多くの補助ルーチン
+
+lib:
+    Throughout the NetBSD kernel, there are many tasks that are used from many places, and that are stored within a few libraries that are used only in the kernel:
+NetBSDカーネルを通して、多くの場所から使用されている多くのタスクがあり、そのは、カーネルだけで使用されているいくつかのライブラリ内に格納されています。
+
+
+        libkern: This is basically what libc is for the userland, with functions used for providing various arithmetic operations that can't be inlined by gcc as well as string/memory copy/comparison operations.
+        これはlibcのはgccのと同様に、文字列/メモリコピー/比較演算によってインライン化することができない各種の演算を提供するために使用される機能で、ユーザランド何のためにあるのか、基本的です。
+        
+
+        libsa: The StandAlone library provides functions used for loading the kernel, when there's no operating system running yet and thus many of the services provided by the NetBSD operating system are not available. The library includes code for netbooting (rarp, RPC, NFS), locating/loading the kernel from an UFS, LFS, ISO 9660 or tar-structured media, memory management and others.
+        彼はまだとNetBSDオペレーティングシステムによって提供されるサービスのため、多くが利用できない実行中のオペレーティングシステムがありません時ライブラリは、カーネルをロードするために使用する機能を提供し、スタンドアロン。ライブラリは、 （ RARP 、 RPC 、 NFS）をネットブート位置/ UFS 、 LFS 、 ISO 9660またはタール構造メディア、メモリ管理や他人からカーネルをロードするためのコードが含まれています。
+        
+
+        libz: In-kernel decompression library for loading gzip compressed kernels.
+        積載GZIP圧縮されたカーネル用のカーネル内解凍ライブラリー。
+
+stand:
+    This directory contains source for several standalone programs that aren't used by NetBSD currently.
+    このディレクトリには、現在、 NetBSDで使用されていないいくつかのスタンドアロンのプログラムのソースが含まれています。
+    
+
+lkm:
+    NetBSD supports loadable kernel modules, and the sources are in this directory. LKMs include a floppy driver for mac68k, various binary emulations, IPfilter logging and several filesystems.
+
+NetBSDはロード可能なカーネルモジュールをサポートしており、ソースはこのディレクトリにあります。のLKMはmac68kのためのフロッピードライバ、さまざまなバイナリエミュレーション、 IPFilterのロギングと、いくつかのファイルシステムが含まれる。
+
+
+
+net:
+    NetBSD's networking framework contains many routines that are independent of a special protocol, and that are used by several networking protocols/stacks. The components are included in this directory, functions include packet filtering (BPF), access routines for all hardware cards (arcnet, ATM, ethernet, fddi, IEEE 802.11, PPP, token ring etc.) that hand device access to drivers in the /sys/dev directory, routing code etc.
+
+NetBSDのネットワークのフレームワークは、特別なプロトコルから独立している多くのルーチンが含まれ、それはいくつかのネットワークプロトコル/スタックによって使用されている。コンポーネントがこのディレクトリに含まれている、機能はパケットフィルタリング（ BPF） 、すべてのハードウェアカード用のアクセスルーチンを含める（ ARCNET 、 ATM 、イーサネット、FDDI 、 IEEE 802.11 、 PPP、トークンリングなど）でドライバーにその手のデバイスアクセス/ SYS / devディレクトリ、ルーティングコードなど
+
+
+netatalk:
+    The code in this directory implements the kernel part of the Appletalk protocol stack. The userland part is not included in NetBSD, it can be installed from pkgsrc/net/netatalk(-sun).
+
+このディレクトリ内のコードは、AppleTalkプロトコルスタックのカーネル部分を実装しています。ユーザーランドの部分はNetBSDの中に含まれていない、それはpkgsrcの/ネット/ netatalkの（ -sun ）からインストールすることができます。
+
+
+netccitt, netiso:
+    Not in widespread use these days, NetBSD compes with an ISO/OSI protocol stack which is located in these directories.
+しない広く使用されて、これらの日は、 NetBSDはこれらのディレクトリに配置され、ISO / OSIプロトコルスタックでcompes 。
+
+
+netinet:
+    Internet stuff - the NetBSD TCP/IP (v4) stack. Documentation on this is available in section 9 of the NetBSD manual pages as well as in Richard Steven's "TCP/IP Illustrated" books.
+インターネットのもの - NetBSDのTCP / IP（ V4 ）スタック。これに関するドキュメントはNetBSDのマニュアルページのセクション9でだけでなく、リチャードスティーブンの「 TCP / IPのイラスト」の本で利用可能です。
+
+
+netinet6:
+    Internet, next generation - this directory contains the KAME IPv6 stack that is shipping with NetBSD. See http://www.kame.net/ for further information.
+インターネットは、次の世代は - このディレクトリは、NetBSDで出荷されてKAME IPv6スタックが含まれています。詳細についてはhttp://www.kame.net/を参照してください。
+
+
+netkey:
+    Key management for IPsec - see the ipsec(4) manpage for more details.
+IPsecのための主要な管理 - 詳細については、 IPSecの（ 4 ）のマンページを参照してください。
+
+
+netnatm:
+    The code in this directory implements native mode ATM to transport other protocols like IP.
+このディレクトリ内のコードは、IPのような他のプロトコルを輸送するネイティブモードATMを実装しています。
+
+netns:
+    NetBSD has support for the Xerox network service protocol, which can be found in this directory. Not in widespread use any more today, the protocol is described in the first edition of Richard Stevens' "TCP/IP Network Programming" book.
+NetBSDはこのディレクトリにありますゼロックスネットワークサービスプロトコルをサポートしている。広く使用され、これ以上、今日は、プロトコルは、リチャードスティーブンス」の「TCP / IPネットワークプログラミング」本の最初の版に記載されているわけではありません。
+
+
+sys:
+    This directory contains only header files that get installed into /usr/include/sys.
+このディレクトリは、/ usr /含める/ SYSにインストールさのみヘッダファイルが含まれています。
+
+
+uvm:
+    The code in this directory implements NetBSD' New Virtual Memory system that replaced the old Mach-based VM system some time ago. See the uvm(4) manpage for more information.
+このディレクトリ内のコードでは、いくつかの時間前の古いマッハベースのVMシステムを置き換えNetBSDの「新規仮想メモリシステムを実装しています。詳細については、 UVM （ 4 ）マンページを参照してください。
+
+
+vm:
+    This directory has only the header files of the old Mach based virtual memory system left, for use with various programs. The VM system itself is not used any longer.
+
+このディレクトリには、さまざまなプログラムで使用するために、左の古いマッハベースの仮想メモリシステムの唯一のヘッダファイルを持っています。 VMシステム自体がもはや使用されない。
+
+
+arch:
+    Code specific to one hardware platform is collected under this directory. Directories are present for each port as well as for CPU-specific functions that are shared by several ports that use the same CPU, avoiding redundancy.
+1ハードウェアプラットフォームに固有のコードは、このディレクトリの下に収集されます。ディレクトリは、各ポートのためだけでなく、冗長性を避ける同じCPUを使用する複数のポートで共有されているCPU固有の機能のために存在している。
+
+
+
+    Port-specific directories contain several subdirectories, with the following ones being present for all ports:
+ポート固有のディレクトリには、以下のものがすべてのポートの存在で、いくつかのサブディレクトリが含まれています。
+
+
+
+        conf: contains kernel config files, a list of files specific to the port and a template for the Makefile used to build a kernel
+        カーネルコンフィグファイル、ポートとのMakefileのテンプレートに固有のファイルのリストを含む、カーネルを構築するために使用される
+        
+
+        compile: This directory is initially empty, it gets populated by config(8) with directories that contain a Makefile and headerfiles to build a kernel.
+        このディレクトリは、それはカーネルを構築するMakefileとヘッダファイルを含むディレクトリに設定（ 8 ）によって最初は空移入されますされている。
+        
+
+        <port>: Port-specific functions, CPU/MMU/CPU initialisation code, etc. - all the machine specific code that cannot be shared across various hardware architectures.
+        ポート固有の機能、 CPU / MMU / CPUの初期化コード、など - さまざまなハードウェアアーキテクチャ間で共有することができないすべてのマシン固有のコード。
+        
+
+        include: machine specific include files that describe the CPU and MMU layout, data formats used by the FPU, limits, etc.
+        特定のマシン等FPUによって使用CPUとMMUのレイアウトを記述したファイル、データ形式、限界を含む
+        
+
+        stand: This directory contains sources for loading the kernel into the system - usually it contains code for bootblocks, secondary stage bootloaders, netboot miniroots and other facilities used to boot the system.
+        このディレクトリは、システムにカーネルをロードするための情報源が含まれています - 通常それはブートブロック、第2段階のブートローダー、ネットブートminirootsしてシステムを起動するために使用する他の施設のためのコードが含まれています。
+        
+
+    Further directories may exist in the arch specific directories that contain bus-specific/non-machine independent device drivers which don't fit into /sys/dev as they work on one port only. Ideally, a port only uses machine independent drivers, of course.
+さらにディレクトリは、彼らが唯一の1つのポート上で動作するように/ SYS / devのに適合しないバス固有/非機械に依存しないデバイスドライバが含まれているアーチ特定のディレクトリに存在してもよい。理想的には、ポートはもちろん、マシンの独立したドライバを使用しています。
+
+
+
+We have now described all the important directories that are available in the NetBSD source tree. To get used to the directory structure, it is recommented that you browse the directories and have a look at the various files to fully explore things.
+
+
+私たちは現在、 NetBSDソースツリーで利用可能なすべての重要なディレクトリを記載している。ディレクトリ構造に慣れるためには、あなたがディレクトリを参照し、完全に物事を探求するために様々なファイルを見ていることrecommentedている。
+
+
+
+(c) Copyright 20020110 Hubert Feyrer
+$Id: tour-de-source-3kernel.html,v 1.2 2002/01/29 00:59:29 feyrer Exp $ 
+

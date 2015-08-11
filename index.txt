@@ -1,0 +1,27 @@
+A Tour through the NetBSD Source Tree http://www.feyrer.de/NetBSD/tour-de-source.html
+
+
+Open Source Hackers' Guide Through The Galaxy
+A Tour through the NetBSD Source Tree
+Part I - III
+Hubert Feyrer, January 2002
+
+
+This article series will give a walk-through of the NetBSD source tree. Based on NetBSD 1.5.2, all the directories, their contents and use will be discussed. Userland code is covered in the first part, the second part introduces the various libraries that are available for application programmers, and the third part is reserved for the kernel's source code. 
+
+この一連の文書では NetBSD ソースツリーを渡り歩きます。
+
+NetBSD 1.5.2 をベースとし、すべてのディレクトリとその内容と利用場面について触れます。
+
+最初にユーザーランドのコードを紹介し、2 番目にアプリケーションプログラマにとって有効な様々なライブラリ、3 番目にカーネルソースコードを予定しています。
+
+
+
+
+Choose one of three parts:
+
+    Part I - Userland
+    Part II - Libraries
+    Part III - Kernel
+
+
